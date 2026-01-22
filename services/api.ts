@@ -154,7 +154,16 @@ export const api = {
   resetPassword: async (email: string) => {
       if (USE_GOOGLE_SHEETS) {
           try {
-              const res = await api.callScript({ action: 'RESET_REQUEST', email });
+              // Construct Dynamic URL
+              // Ini memastikan pautan e-mel sentiasa betul, sama ada di localhost atau production
+              const currentBaseUrl = window.location.href.split('#')[0]; 
+              const resetLink = `${currentBaseUrl}#/reset-password`;
+
+              const res = await api.callScript({ 
+                  action: 'RESET_REQUEST', 
+                  email, 
+                  resetLink // Hantar URL ini ke Google Script
+              });
               return res || fail('Tiada respons server');
           } catch (e: any) {
               return fail(e.message || 'Ralat sambungan script');
