@@ -153,8 +153,12 @@ export const api = {
 
   resetPassword: async (email: string) => {
       if (USE_GOOGLE_SHEETS) {
-          const res = await api.callScript({ action: 'RESET_REQUEST', email });
-          return res || fail('Tiada respons server');
+          try {
+              const res = await api.callScript({ action: 'RESET_REQUEST', email });
+              return res || fail('Tiada respons server');
+          } catch (e: any) {
+              return fail(e.message || 'Ralat sambungan script');
+          }
       }
       return success(null, 'Link dihantar (Simulasi)');
   },

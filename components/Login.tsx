@@ -3,10 +3,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { api } from '../services/api'; // Direct API import for reset password
-import { Lock, User, Eye, EyeOff, ArrowRight, ShieldCheck, LayoutDashboard, UserPlus, X, Mail } from 'lucide-react';
+import { api } from '../services/api';
+import { Lock, User, Eye, EyeOff, ArrowRight, ShieldCheck, LayoutDashboard, UserPlus, X, Mail, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 
-// --- FOOTER COMPONENT (Reused style) ---
+// --- FOOTER COMPONENT ---
 const Footer = () => (
     <div className="py-6 text-center w-full">
       <p className="text-[10px] font-extrabold text-slate-400 tracking-[0.25em] uppercase opacity-70">
@@ -62,16 +62,26 @@ const Login: React.FC = () => {
 
     try {
         const response = await api.resetPassword(emailToProcess);
+        
         if (response.status === 'success') {
             setResetStatus('success');
-            setResetMessage('Pautan set semula kata laluan telah dihantar ke e-mel anda.');
+            setResetMessage('Pautan untuk menetapkan semula kata laluan telah dihantar ke e-mel anda. Sila semak peti masuk atau spam.');
         } else {
             setResetStatus('error');
-            setResetMessage(response.message || 'Gagal menghantar e-mel. Sila cuba lagi.');
+            // Check for common Google Script permission errors to give better advice
+            const errorMsg = response.message || response.error || '';
+            
+            if (errorMsg.includes('permission') || errorMsg.includes('MailApp')) {
+                 setResetMessage('Ralat Server: Skrip Google tidak mempunyai kebenaran menghantar e-mel. Sila hubungi admin untuk melakukan "Authorize" pada skrip.');
+            } else if (errorMsg.includes('tidak ditemui')) {
+                 setResetMessage('E-mel ini tidak berdaftar dalam sistem.');
+            } else {
+                 setResetMessage(errorMsg || 'Gagal menghantar e-mel. Sila cuba lagi.');
+            }
         }
     } catch (err) {
         setResetStatus('error');
-        setResetMessage('Ralat rangkaian. Sila cuba sebentar lagi.');
+        setResetMessage('Ralat rangkaian. Sila pastikan sambungan internet anda stabil.');
     }
   };
 
@@ -259,54 +269,60 @@ const Login: React.FC = () => {
                     </button>
                     
                     <div className="text-center w-full max-w-sm">
-                        <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
                             <Lock size={32} />
                         </div>
                         <h3 className="text-2xl font-bold text-slate-900 mb-2">Lupa Kata Laluan?</h3>
-                        <p className="text-slate-500 text-sm mb-8">
-                            Masukkan e-mel anda di bawah dan kami akan menghantar arahan untuk menetapkan semula kata laluan anda.
+                        <p className="text-slate-500 text-sm mb-8 leading-relaxed">
+                            Masukkan e-mel anda di bawah dan kami akan menghantar pautan untuk menetapkan semula kata laluan anda.
                         </p>
 
                         {resetStatus === 'success' ? (
-                            <div className="bg-emerald-50 border border-emerald-100 text-emerald-700 p-4 rounded-xl text-sm mb-6">
-                                {resetMessage}
+                            <div className="bg-emerald-50 border border-emerald-100 text-emerald-700 p-6 rounded-xl text-center animate-in fade-in zoom-in">
+                                <CheckCircle2 size={48} className="mx-auto mb-3 text-emerald-500" />
+                                <h4 className="font-bold text-lg text-emerald-800 mb-2">E-mel Dihantar!</h4>
+                                <p className="text-xs text-emerald-700/80 mb-6 leading-relaxed">{resetMessage}</p>
                                 <button 
                                     onClick={() => setShowForgotPassword(false)}
-                                    className="block w-full mt-3 bg-emerald-600 text-white py-2 rounded-lg font-bold hover:bg-emerald-700 transition-colors"
+                                    className="block w-full bg-emerald-600 text-white py-2.5 rounded-lg font-bold hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-500/20"
                                 >
                                     Kembali ke Log Masuk
                                 </button>
                             </div>
                         ) : (
-                            <form onSubmit={handleResetPassword} className="space-y-4">
+                            <form onSubmit={handleResetPassword} className="space-y-5 w-full">
                                 {resetStatus === 'error' && (
-                                    <div className="p-3 bg-red-50 text-red-600 text-xs rounded-lg border border-red-100 mb-4">
-                                        {resetMessage}
+                                    <div className="p-4 bg-red-50 text-red-700 text-xs rounded-xl border border-red-100 mb-4 flex gap-3 items-start text-left animate-in shake">
+                                        <AlertCircle size={16} className="shrink-0 mt-0.5" />
+                                        <div>{resetMessage}</div>
                                     </div>
                                 )}
-                                <div className="relative group text-left">
-                                    <Mail className="absolute left-3 top-3 text-slate-400" size={20} />
-                                    <input 
-                                        type="text" 
-                                        value={resetEmail}
-                                        onChange={(e) => setResetEmail(e.target.value)}
-                                        className="w-full pl-10 pr-28 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-slate-800"
-                                        placeholder="user (Auto @gmail.com)"
-                                        required
-                                    />
-                                    {/* Ghost Text for Reset */}
-                                    {!resetEmail.includes('@') && resetEmail.length > 0 && (
-                                        <span className="absolute right-4 top-3.5 text-slate-400 text-sm font-medium pointer-events-none select-none transition-opacity">
-                                            @gmail.com
-                                        </span>
-                                    )}
+                                <div className="space-y-1.5 text-left">
+                                    <label className="text-xs font-bold text-slate-500 uppercase ml-1">E-mel Akaun</label>
+                                    <div className="relative group text-left">
+                                        <Mail className="absolute left-3 top-3 text-slate-400" size={20} />
+                                        <input 
+                                            type="text" 
+                                            value={resetEmail}
+                                            onChange={(e) => setResetEmail(e.target.value)}
+                                            className="w-full pl-10 pr-28 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-slate-800"
+                                            placeholder="user (Auto @gmail.com)"
+                                            required
+                                        />
+                                        {/* Ghost Text for Reset */}
+                                        {!resetEmail.includes('@') && resetEmail.length > 0 && (
+                                            <span className="absolute right-4 top-3.5 text-slate-400 text-sm font-medium pointer-events-none select-none transition-opacity">
+                                                @gmail.com
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
                                 <button 
                                     type="submit" 
                                     disabled={resetStatus === 'loading'}
-                                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-lg shadow-blue-500/30 transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+                                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-500/30 transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                                 >
-                                    {resetStatus === 'loading' ? 'Menghantar...' : 'Hantar Pautan Reset'}
+                                    {resetStatus === 'loading' ? <><Loader2 size={18} className="animate-spin"/> Menghantar...</> : 'Hantar Pautan Reset'}
                                 </button>
                             </form>
                         )}
