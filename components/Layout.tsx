@@ -6,7 +6,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import ReportGenerator from './ReportGenerator';
 import { api } from '../services/api';
-import { supabase, isConfigured } from '../services/supabaseClient';
 import { 
   LayoutDashboard, 
   CalendarDays, 
@@ -191,35 +190,25 @@ const Layout: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
     setNotifications(filtered);
   }, [user]);
 
-  // --- SUPABASE KEEP ALIVE (HEARTBEAT) & CONNECTION CHECK ---
+  // --- CONNECTION CHECK (Google Sheets / Supabase) ---
   useEffect(() => {
-    // Initial status check
-    if (!isConfigured) {
-        setConnectionStatus('demo');
-    } else {
-        const checkConnection = async () => {
-            try {
-                // Lightweight query to check connection
-                const { error } = await supabase.from('profiles').select('count', { count: 'exact', head: true });
-                if (error && (error.message.includes('fetch') || error.message.includes('network') || error.message.includes('Failed to fetch'))) {
-                    setConnectionStatus('offline');
-                } else {
-                    setConnectionStatus('online');
-                }
-            } catch (e) {
-                setConnectionStatus('offline');
-            }
+        const performCheck = async () => {
+            const isConnected = await api.checkConnection();
+            // If connected -> Online
+            // If disconnected -> Offline (or Demo if that's preferred for unconnected state)
+            // Here we map 'false' to 'offline' to show the red Disconnected badge requested.
+            setConnectionStatus(isConnected ? 'online' : 'offline');
         };
 
-        checkConnection();
-        // Jalankan ping/check setiap 10 saat
+        // Check immediately
+        performCheck();
+
+        // Jalankan ping/check setiap 15 saat
         const intervalId = setInterval(() => {
-            api.keepAlive();
-            checkConnection();
-        }, 10 * 1000);
+            performCheck();
+        }, 15 * 1000);
 
         return () => clearInterval(intervalId);
-    }
   }, []);
 
   const handleLogout = () => {

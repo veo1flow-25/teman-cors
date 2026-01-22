@@ -42,12 +42,43 @@ if (!isSupabaseConfigured && mockDb.getUsers().length === 0) {
 export const api = {
 
   keepAlive: async () => {
-    // Keep alive logic mostly relevant for Supabase or warm-up calls
-    if (isSupabaseConfigured) {
+    // Keep alive function
+    if (USE_GOOGLE_SHEETS) {
+        // Optional: Ping sheet lightly if needed, but usually not required for GAS web app
+    } else if (isSupabaseConfigured) {
         try {
             const { error } = await supabase.from('profiles').select('id').limit(1).single();
         } catch (e) { }
     }
+  },
+
+  // Fungsi baru untuk menyemak status sambungan
+  checkConnection: async (): Promise<boolean> => {
+      // 1. Check Google Sheets (Priority)
+      if (USE_GOOGLE_SHEETS) {
+          try {
+              // Hantar parameter 'ping' ringkas untuk elak load data besar
+              const res = await api.callScript({ check: 'ping' }, 'GET');
+              // Jika status success, bermakna script respons
+              return res && res.status === 'success';
+          } catch (e) {
+              console.error("Google Sheet Check Failed:", e);
+              return false;
+          }
+      }
+      
+      // 2. Check Supabase (Fallback)
+      if (isSupabaseConfigured) {
+          try {
+              const { error } = await supabase.from('profiles').select('count', { count: 'exact', head: true });
+              return !error;
+          } catch (e) { 
+              return false; 
+          }
+      }
+
+      // 3. Jika tiada cloud config, anggap demo mode (return false supaya UI tunjuk status sebenar atau handle 'demo' di UI)
+      return false;
   },
 
   // --- GOOGLE SHEETS HELPER ---
@@ -77,7 +108,7 @@ export const api = {
           return json;
       } catch (error) {
           console.error("Google Sheet API Error:", error);
-          return null;
+          throw error; // Throw error supaya checkConnection boleh tangkap
       }
   },
 
