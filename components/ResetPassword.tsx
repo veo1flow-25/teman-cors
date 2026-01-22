@@ -1,62 +1,39 @@
 
 // components/ResetPassword.tsx
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { api } from '../services/api';
-import { supabase } from '../services/supabaseClient';
 import { Lock, CheckCircle, XCircle, ArrowRight, Eye, EyeOff, Loader2 } from 'lucide-react';
 
 const ResetPassword: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
 
+  const [email, setEmail] = useState('');
+  const [token, setToken] = useState('');
+  
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   
-  const [status, setStatus] = useState<'idle' | 'verifying' | 'loading' | 'success' | 'error'>('verifying');
+  const [status, setStatus] = useState<'idle' | 'verifying' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
-  const [sessionValid, setSessionValid] = useState(false);
 
   useEffect(() => {
-    // Check if we have an active session (user clicked email link)
-    // or listen for the PASSWORD_RECOVERY event
-    const checkSession = async () => {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-            setSessionValid(true);
-            setStatus('idle');
-        } else {
-            // Wait a moment for auth state to settle
-            setStatus('verifying');
-        }
-    };
+    // Extract Token & Email from URL
+    // URL Format: .../#/reset-password?email=abc@gmail.com&token=123456
+    const searchParams = new URLSearchParams(location.search);
+    const emailParam = searchParams.get('email');
+    const tokenParam = searchParams.get('token');
 
-    checkSession();
-
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-        if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
-            setSessionValid(true);
-            setStatus('idle');
-        }
-    });
-
-    // Timeout fallback if no session is found after 3 seconds
-    const timeout = setTimeout(() => {
-        if (!sessionValid) {
-             supabase.auth.getSession().then(({ data }) => {
-                 if (!data.session) {
-                     setStatus('error');
-                     setMessage('Pautan tidak sah atau sesi telah tamat. Sila minta pautan baru.');
-                 }
-             });
-        }
-    }, 4000);
-
-    return () => {
-        authListener.subscription.unsubscribe();
-        clearTimeout(timeout);
-    };
-  }, []);
+    if (emailParam && tokenParam) {
+        setEmail(emailParam);
+        setToken(tokenParam);
+    } else {
+        setStatus('error');
+        setMessage('Pautan tidak sah. Sila pastikan anda menggunakan pautan penuh dari e-mel.');
+    }
+  }, [location]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,18 +42,23 @@ const ResetPassword: React.FC = () => {
       setMessage('Kata laluan tidak sepadan.');
       return;
     }
+
+    if (newPassword.length < 6) {
+       setStatus('error');
+       setMessage('Kata laluan mesti sekurang-kurangnya 6 aksara.');
+       return;
+    }
     
     setStatus('loading');
     try {
-      // Just update the user. The session is already active from the link click.
-      const res = await api.updatePassword('', newPassword);
+      const res = await api.confirmResetPassword(email, token, newPassword);
       if (res.status === 'success') {
         setStatus('success');
         setMessage('Kata laluan berjaya dikemaskini!');
         setTimeout(() => navigate('/login'), 3000);
       } else {
         setStatus('error');
-        setMessage(res.message || res.error || 'Gagal mengemaskini kata laluan.');
+        setMessage(res.message || res.error || 'Gagal mengemaskini kata laluan. Kod mungkin telah tamat tempoh.');
       }
     } catch (e) {
       setStatus('error');
@@ -84,18 +66,7 @@ const ResetPassword: React.FC = () => {
     }
   };
 
-  if (status === 'verifying') {
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-[#0F172A] p-4">
-             <div className="text-center text-white">
-                 <Loader2 size={48} className="animate-spin mx-auto mb-4 text-indigo-500" />
-                 <h2 className="text-xl font-bold">Mengesahkan Pautan...</h2>
-             </div>
-        </div>
-      )
-  }
-
-  if (status === 'error' && !sessionValid) {
+  if (status === 'error' && !email) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0F172A] p-4">
         <div className="bg-white p-8 rounded-2xl shadow-2xl max-w-md w-full text-center">
@@ -103,7 +74,7 @@ const ResetPassword: React.FC = () => {
             <XCircle size={32} />
           </div>
           <h2 className="text-2xl font-bold text-slate-900 mb-2">Pautan Tidak Sah</h2>
-          <p className="text-slate-500 mb-6">{message || "Sila pastikan anda membuka pautan daripada e-mel yang terkini."}</p>
+          <p className="text-slate-500 mb-6">{message}</p>
           <button 
             onClick={() => navigate('/login')}
             className="w-full bg-slate-900 text-white py-3 rounded-xl font-bold hover:bg-slate-800 transition"
@@ -117,7 +88,6 @@ const ResetPassword: React.FC = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#0F172A] p-4 relative overflow-hidden">
-      {/* Background Elements */}
       <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-600/20 rounded-full blur-[120px] animate-pulse"></div>
       <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-blue-600/20 rounded-full blur-[120px] animate-pulse delay-700"></div>
 
@@ -126,8 +96,8 @@ const ResetPassword: React.FC = () => {
           <div className="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner">
             <Lock size={32} />
           </div>
-          <h2 className="text-2xl font-bold text-slate-900">Tetapkan Kata Laluan Baru</h2>
-          <p className="text-slate-500 text-sm mt-2">Sila masukkan kata laluan baru anda untuk akaun ini.</p>
+          <h2 className="text-2xl font-bold text-slate-900">Tetapkan Kata Laluan</h2>
+          <p className="text-slate-500 text-sm mt-2">Untuk: <span className="font-semibold text-slate-700">{email}</span></p>
         </div>
 
         {status === 'success' ? (
@@ -144,6 +114,11 @@ const ResetPassword: React.FC = () => {
                 <XCircle size={18} /> {message}
               </div>
             )}
+
+            {/* Token Input (Hidden or visible for debugging, usually hidden if from URL) */}
+            <div className="hidden">
+                 <input value={token} readOnly />
+            </div>
 
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-600 uppercase tracking-wide ml-1">Kata Laluan Baru</label>
