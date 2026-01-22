@@ -4,7 +4,7 @@ import {
   Users, Wallet, AlertCircle, CheckCircle2, 
   Plus, Edit2, Save, Trash2, FileText, Activity, ArrowUpRight, ArrowDownRight, Target, RefreshCw, Cloud
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import AISummary from './AISummary';
 import { useYear, useSearch } from './Layout';
 import { useAuth } from '../contexts/AuthContext';
@@ -125,6 +125,7 @@ const Dashboard: React.FC = () => {
   const { selectedYear } = useYear();
   const { searchQuery } = useSearch();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [sheets, setSheets] = useState<KPISheet[]>([
     { id: 'sheet1', title: `KPI ${selectedYear}`, data: initialKPIData },
     { id: 'sheet2', title: `KPI ${selectedYear - 1}`, data: [] }
@@ -453,7 +454,11 @@ const Dashboard: React.FC = () => {
       {/* Metrics Summary Row - Clickable Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {kpiMetrics.map((metric) => (
-          <Link to={metric.link || '#'} key={metric.id} className="block group">
+          <div 
+            key={metric.id} 
+            onClick={() => metric.link && navigate(metric.link)}
+            className="block group cursor-pointer"
+          >
             <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-300 relative overflow-hidden">
                <div className="flex justify-between items-start mb-4">
                   <div className={`p-3 rounded-xl ${
@@ -477,7 +482,7 @@ const Dashboard: React.FC = () => {
                   <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">Sasaran: <span className="font-semibold text-slate-600 dark:text-slate-300">{metric.target}</span></p>
                </div>
             </div>
-          </Link>
+          </div>
         ))}
       </div>
 

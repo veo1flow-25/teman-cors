@@ -1,16 +1,8 @@
 import { GoogleGenAI } from "@google/genai";
 
-// Use API Key strictly from process.env.API_KEY as per guidelines
-const apiKey = process.env.API_KEY || '';
-
-const ai = new GoogleGenAI({ apiKey });
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 export const generateInsight = async (context: string, data: any, mode: 'fast' | 'deep' = 'fast'): Promise<string> => {
-  if (!apiKey) {
-    console.warn("Gemini API Key missing");
-    return "API Key Gemini tidak ditemui. Sila konfigurasi process.env.API_KEY.";
-  }
-
   try {
     const prompt = `
       Bertindak sebagai penganalisis data kewangan kanan.
@@ -23,12 +15,14 @@ export const generateInsight = async (context: string, data: any, mode: 'fast' |
       ${JSON.stringify(data, null, 2)}
     `;
 
-    // Guidelines: Basic Text Tasks -> gemini-2.5-flash, Complex -> gemini-3-pro-preview
     let model = 'gemini-2.5-flash';
     let config: any = {};
 
     if (mode === 'deep') {
-      model = 'gemini-3-pro-preview'; 
+      model = 'gemini-3-pro-preview';
+      config = {
+        thinkingConfig: { thinkingBudget: 32768 }
+      };
     }
 
     const response = await ai.models.generateContent({
@@ -40,6 +34,6 @@ export const generateInsight = async (context: string, data: any, mode: 'fast' |
     return response.text || "Tiada respons dihasilkan.";
   } catch (error) {
     console.error("Gemini API Error:", error);
-    return "Maaf, terdapat ralat semasa menjana analisis AI. Sila pastikan API Key sah.";
+    return "Maaf, terdapat ralat semasa menjana analisis AI. Sila pastikan API Key telah dikonfigurasi.";
   }
 };

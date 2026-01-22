@@ -1,7 +1,7 @@
 
 // components/Layout.tsx
 import React, { useState, useEffect, useContext, createContext, useRef } from 'react';
-import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import ReportGenerator from './ReportGenerator';
@@ -103,7 +103,7 @@ const Footer = () => (
   </div>
 );
 
-const Layout: React.FC = () => {
+const Layout: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => window.innerWidth >= 1024);
   const [selectedYear, setSelectedYear] = useState<number>(2025);
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -314,8 +314,8 @@ const Layout: React.FC = () => {
                 </nav>
 
                 <div className="p-4 border-t border-slate-800/50 bg-[#0B1120] space-y-3">
-                    {/* System Status & Theme Toggle (Always visible in Sidebar now) */}
-                    <div className="flex items-center justify-between gap-2 pb-2 mb-2 border-b border-slate-800/50">
+                    {/* Mobile Settings Controls (Visible in sidebar on mobile only) */}
+                    <div className="lg:hidden flex items-center justify-between gap-2 pb-2 mb-2 border-b border-slate-800/50">
                         {/* Connection Status */}
                         <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/10 ${
                             connectionStatus === 'online' ? 'bg-emerald-900/30 text-emerald-400' :
@@ -335,7 +335,6 @@ const Layout: React.FC = () => {
                         <button 
                             onClick={toggleTheme} 
                             className="p-1.5 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-                            title={theme === 'dark' ? 'Mod Cerah' : 'Mod Gelap'}
                         >
                             {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
                         </button>
@@ -394,6 +393,30 @@ const Layout: React.FC = () => {
               
               <div className="flex items-center gap-4 md:gap-6">
                   
+                  {/* Connection Status Indicator - Hidden on Mobile */}
+                  <div className={`hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all ${
+                      connectionStatus === 'online' ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400' :
+                      connectionStatus === 'offline' ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-700 dark:text-red-400' :
+                      'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400'
+                  }`}>
+                      {connectionStatus === 'online' && <Wifi size={14} />}
+                      {connectionStatus === 'offline' && <WifiOff size={14} />}
+                      {connectionStatus === 'demo' && <Database size={14} />}
+                      <span className="text-[10px] font-bold uppercase tracking-wider">
+                          {connectionStatus === 'online' ? 'Connected' : 
+                           connectionStatus === 'offline' ? 'Disconnected' : 'Mod Demo'}
+                      </span>
+                  </div>
+
+                  {/* Dark Mode Toggle - Hidden on Mobile */}
+                  <button 
+                    onClick={toggleTheme} 
+                    className="hidden md:block p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                    title={theme === 'dark' ? 'Tukar ke Mod Cerah' : 'Tukar ke Mod Gelap'}
+                  >
+                    {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+                  </button>
+
                   {/* PPT REPORT GENERATOR */}
                   <ReportGenerator currentYear={selectedYear} />
 
@@ -512,7 +535,7 @@ const Layout: React.FC = () => {
 
             <div className="flex-1 overflow-auto p-4 md:p-8 scroll-smooth flex flex-col">
               <div className="flex-1">
-                 <Outlet />
+                 {children}
               </div>
               <Footer />
             </div>

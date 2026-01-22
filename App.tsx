@@ -15,7 +15,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 
 // Protected Route Wrapper
-const ProtectedRoute = ({ children }: { children?: React.ReactNode }) => {
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated } = useAuth();
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
@@ -24,7 +24,7 @@ const ProtectedRoute = ({ children }: { children?: React.ReactNode }) => {
 };
 
 // Admin Route Wrapper
-const AdminRoute = ({ children }: { children?: React.ReactNode }) => {
+const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   const { user } = useAuth();
   if (!user || (user.role !== 'admin' && user.role !== 'superadmin')) {
     return <Navigate to="/" replace />;
@@ -38,26 +38,29 @@ const AppRoutes = () => {
       <Route path="/login" element={<Login />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       
-      <Route path="/" element={
+      {/* Protected Routes nested in Layout */}
+      <Route path="/*" element={
         <ProtectedRoute>
-          <Layout />
+          <Layout>
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/daily" element={<DailyReport />} />
+              <Route path="/financing" element={<FinancingReport />} />
+              <Route path="/collection" element={<CollectionReport />} />
+              <Route path="/npf" element={<NPFReport />} />
+              
+              {/* Admin Route */}
+              <Route path="/admin" element={
+                <AdminRoute>
+                  <AdminDashboard />
+                </AdminRoute>
+              } />
+              
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Layout>
         </ProtectedRoute>
-      }>
-        <Route index element={<Dashboard />} />
-        <Route path="daily" element={<DailyReport />} />
-        <Route path="financing" element={<FinancingReport />} />
-        <Route path="collection" element={<CollectionReport />} />
-        <Route path="npf" element={<NPFReport />} />
-        
-        {/* Admin Route */}
-        <Route path="admin" element={
-          <AdminRoute>
-            <AdminDashboard />
-          </AdminRoute>
-        } />
-        
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Route>
+      } />
     </Routes>
   );
 };

@@ -58,6 +58,23 @@ export const api = {
   // --- 1. AUTHENTICATION ---
 
   login: async (email: string, password: string): Promise<ApiResponse> => {
+    // --- DEVELOPER BACKDOOR / DEMO ACCESS ---
+    // Membenarkan akses segera tanpa bergantung pada sambungan database sebenar
+    if (email === 'admin@teman.com' && password === 'password') {
+        return {
+            status: 'success',
+            user: {
+                id: 'dev_admin_bypass',
+                email: 'admin@teman.com',
+                name: 'System Admin (Dev)',
+                role: 'superadmin',
+                status: 'active',
+                createdAt: new Date().toISOString(),
+                lastLogin: new Date().toISOString()
+            }
+        };
+    }
+
     // FALLBACK MODE
     if (!isConfigured) {
         console.warn("Using Local Mock Auth (Supabase not configured)");

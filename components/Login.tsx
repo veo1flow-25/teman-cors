@@ -224,6 +224,17 @@ const Login: React.FC = () => {
                     </button>
                 </form>
 
+                {!isRegistering && (
+                  <div className="mt-6 p-4 bg-indigo-50/50 border border-indigo-100 rounded-xl text-center">
+                      <p className="text-xs font-bold text-indigo-900 uppercase tracking-wide mb-1">Akses Demo / Pembangun</p>
+                      <div className="flex justify-center items-center gap-1">
+                          <code className="text-xs text-indigo-700 bg-white px-2 py-1 rounded border border-indigo-100">admin@teman.com</code>
+                          <span className="text-xs text-indigo-400">•</span>
+                          <code className="text-xs text-indigo-700 bg-white px-2 py-1 rounded border border-indigo-100">password</code>
+                      </div>
+                  </div>
+                )}
+
                 <div className="mt-8 pt-6 border-t border-slate-100 text-center">
                     <p className="text-sm text-slate-500">
                         {isRegistering ? "Sudah mempunyai akaun?" : "Belum mempunyai akaun?"}
