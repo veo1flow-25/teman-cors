@@ -1,9 +1,28 @@
 import { GoogleGenAI } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Safely retrieve API key without crashing if 'process' is undefined in browser
+const getApiKey = () => {
+  try {
+    if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
+      return process.env.API_KEY;
+    }
+    // Fallback for Vite environments if process is missing
+    if (typeof import.meta !== 'undefined' && (import.meta as any).env) {
+      return (import.meta as any).env.VITE_API_KEY || (import.meta as any).env.API_KEY;
+    }
+  } catch (e) {
+    console.warn("Could not read environment variables");
+  }
+  return '';
+};
+
+const ai = new GoogleGenAI({ apiKey: getApiKey() });
 
 export const generateInsight = async (context: string, data: any, mode: 'fast' | 'deep' = 'fast'): Promise<string> => {
   try {
+    const apiKey = getApiKey();
+    if (!apiKey) return "API Key tidak ditemui. Sila konfigurasi environment variable.";
+
     const prompt = `
       Bertindak sebagai penganalisis data kewangan kanan.
       Analisis data berikut berkaitan dengan "${context}".
