@@ -1,27 +1,30 @@
 import { GoogleGenAI } from "@google/genai";
 
-// Safely retrieve API key without crashing if 'process' is undefined in browser
-const getApiKey = () => {
-  try {
-    if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
-      return process.env.API_KEY;
-    }
-    // Fallback for Vite environments if process is missing
-    if (typeof import.meta !== 'undefined' && (import.meta as any).env) {
-      return (import.meta as any).env.VITE_API_KEY || (import.meta as any).env.API_KEY;
-    }
-  } catch (e) {
-    console.warn("Could not read environment variables");
-  }
-  return '';
-};
-
-const ai = new GoogleGenAI({ apiKey: getApiKey() });
-
 export const generateInsight = async (context: string, data: any, mode: 'fast' | 'deep' = 'fast'): Promise<string> => {
   try {
-    const apiKey = getApiKey();
-    if (!apiKey) return "API Key tidak ditemui. Sila konfigurasi environment variable.";
+    // 1. Dapatkan API Key secara selamat
+    // Nota: Mengikut arahan, kita mesti guna process.env.API_KEY.
+    // Jika dalam environment Vite/Browser yang tidak menyokong process.env secara langsung,
+    // kod ini mungkin perlu disesuaikan dengan bundler (cth: import.meta.env), 
+    // tetapi untuk mematuhi arahan standard, kita guna fallback selamat.
+    
+    let apiKey = '';
+    try {
+        if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
+            apiKey = process.env.API_KEY;
+        }
+    } catch (e) {
+        // Abaikan ralat 'process is not defined'
+    }
+
+    // 2. Jika tiada API Key, jangan crash, pulangkan mesej mesra.
+    if (!apiKey) {
+        console.warn("Gemini API Key tidak ditemui dalam process.env.API_KEY");
+        return "Fungsi AI tidak aktif. Sila konfigurasi API Key dalam persekitaran anda.";
+    }
+
+    // 3. Inisialisasi SDK HANYA bila diperlukan (Lazy Init)
+    const ai = new GoogleGenAI({ apiKey: apiKey });
 
     const prompt = `
       Bertindak sebagai penganalisis data kewangan kanan.
@@ -51,8 +54,8 @@ export const generateInsight = async (context: string, data: any, mode: 'fast' |
     });
 
     return response.text || "Tiada respons dihasilkan.";
-  } catch (error) {
+  } catch (error: any) {
     console.error("Gemini API Error:", error);
-    return "Maaf, terdapat ralat semasa menjana analisis AI. Sila pastikan API Key telah dikonfigurasi.";
+    return `Maaf, analisis tidak dapat dijana. Ralat: ${error.message || 'Unknown error'}`;
   }
 };
