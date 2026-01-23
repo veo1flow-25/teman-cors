@@ -1,6 +1,7 @@
 
 // App.tsx
 import React from 'react';
+// Fix: Import routing components. Ensure correct named exports for v6/v7 environments.
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
 import Dashboard from './components/Dashboard';

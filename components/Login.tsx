@@ -1,6 +1,7 @@
 
 // components/Login.tsx
 import React, { useState } from 'react';
+// Fix: Import routing hooks from 'react-router-dom' to resolve possible named export issues.
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../services/api';
@@ -10,7 +11,7 @@ import { Lock, User, Eye, EyeOff, ArrowRight, ShieldCheck, LayoutDashboard, User
 const Footer = () => (
     <div className="py-6 text-center w-full">
       <p className="text-[10px] font-extrabold text-slate-400 tracking-[0.25em] uppercase opacity-70">
-        © 2025 TEKUN NASIONAL • AZAM RAMLI
+        © {new Date().getFullYear()} TEKUN NASIONAL • AZAM RAMLI
       </p>
     </div>
 );
@@ -122,7 +123,7 @@ const Login: React.FC = () => {
         {/* Footer for Left Panel */}
         <div className="absolute bottom-8 left-20">
              <p className="text-[10px] font-extrabold text-slate-500 tracking-[0.25em] uppercase">
-                © 2025 TEKUN NASIONAL • AZAM RAMLI
+                © {new Date().getFullYear()} TEKUN NASIONAL • AZAM RAMLI
              </p>
         </div>
       </div>
@@ -233,17 +234,6 @@ const Login: React.FC = () => {
                         )}
                     </button>
                 </form>
-
-                {!isRegistering && (
-                  <div className="mt-6 p-4 bg-indigo-50/50 border border-indigo-100 rounded-xl text-center">
-                      <p className="text-xs font-bold text-indigo-900 uppercase tracking-wide mb-1">Akses Demo / Pembangun</p>
-                      <div className="flex justify-center items-center gap-1">
-                          <code className="text-xs text-indigo-700 bg-white px-2 py-1 rounded border border-indigo-100">admin@teman.com</code>
-                          <span className="text-xs text-indigo-400">•</span>
-                          <code className="text-xs text-indigo-700 bg-white px-2 py-1 rounded border border-indigo-100">password</code>
-                      </div>
-                  </div>
-                )}
 
                 <div className="mt-8 pt-6 border-t border-slate-100 text-center">
                     <p className="text-sm text-slate-500">

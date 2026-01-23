@@ -1,30 +1,11 @@
+
 import { GoogleGenAI } from "@google/genai";
 
+// Fix: Mandatory initialization using process.env.API_KEY and correct models as per guidelines
 export const generateInsight = async (context: string, data: any, mode: 'fast' | 'deep' = 'fast'): Promise<string> => {
   try {
-    // 1. Dapatkan API Key secara selamat
-    // Nota: Mengikut arahan, kita mesti guna process.env.API_KEY.
-    // Jika dalam environment Vite/Browser yang tidak menyokong process.env secara langsung,
-    // kod ini mungkin perlu disesuaikan dengan bundler (cth: import.meta.env), 
-    // tetapi untuk mematuhi arahan standard, kita guna fallback selamat.
-    
-    let apiKey = '';
-    try {
-        if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
-            apiKey = process.env.API_KEY;
-        }
-    } catch (e) {
-        // Abaikan ralat 'process is not defined'
-    }
-
-    // 2. Jika tiada API Key, jangan crash, pulangkan mesej mesra.
-    if (!apiKey) {
-        console.warn("Gemini API Key tidak ditemui dalam process.env.API_KEY");
-        return "Fungsi AI tidak aktif. Sila konfigurasi API Key dalam persekitaran anda.";
-    }
-
-    // 3. Inisialisasi SDK HANYA bila diperlukan (Lazy Init)
-    const ai = new GoogleGenAI({ apiKey: apiKey });
+    // Fix: Mandatory initialization pattern. Always use process.env.API_KEY.
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
     const prompt = `
       Bertindak sebagai penganalisis data kewangan kanan.
@@ -37,22 +18,19 @@ export const generateInsight = async (context: string, data: any, mode: 'fast' |
       ${JSON.stringify(data, null, 2)}
     `;
 
-    let model = 'gemini-2.5-flash';
-    let config: any = {};
-
-    if (mode === 'deep') {
-      model = 'gemini-3-pro-preview';
-      config = {
-        thinkingConfig: { thinkingBudget: 32768 }
-      };
-    }
-
+    // Fix: Use recommended Gemini 3 models based on task type. gemini-3-pro-preview for complex reasoning.
+    const model = mode === 'deep' ? 'gemini-3-pro-preview' : 'gemini-3-flash-preview';
+    
     const response = await ai.models.generateContent({
       model,
       contents: prompt,
-      config
+      config: {
+        // Fix: Use thinkingConfig for complex reasoning tasks as per guidelines
+        ...(mode === 'deep' ? { thinkingConfig: { thinkingBudget: 32768 } } : {})
+      }
     });
 
+    // Fix: Access response.text as a property, not a method
     return response.text || "Tiada respons dihasilkan.";
   } catch (error: any) {
     console.error("Gemini API Error:", error);

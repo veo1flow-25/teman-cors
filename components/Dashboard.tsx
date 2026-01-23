@@ -4,6 +4,7 @@ import {
   Users, Wallet, AlertCircle, CheckCircle2, 
   Plus, Edit2, Save, Trash2, FileText, Activity, ArrowUpRight, ArrowDownRight, Target, RefreshCw, Cloud
 } from 'lucide-react';
+// Fix: Ensure named export useNavigate is correctly imported from 'react-router-dom'
 import { useNavigate } from 'react-router-dom';
 import AISummary from './AISummary';
 import { useYear, useSearch } from './Layout';

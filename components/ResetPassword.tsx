@@ -1,6 +1,7 @@
 
 // components/ResetPassword.tsx
 import React, { useState, useEffect } from 'react';
+// Fix: Import routing hooks from 'react-router-dom' to resolve possible named export issues.
 import { useNavigate, useLocation } from 'react-router-dom';
 import { api } from '../services/api';
 import { Lock, CheckCircle, XCircle, ArrowRight, Eye, EyeOff, Loader2 } from 'lucide-react';

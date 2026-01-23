@@ -1,6 +1,7 @@
 
 // components/Layout.tsx
 import React, { useState, useEffect, useContext, createContext, useRef } from 'react';
+// Fix: Import routing hooks and components from 'react-router-dom' to resolve export issues.
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -97,14 +98,14 @@ const Footer = () => (
   <div className="py-8 flex flex-col items-center justify-center opacity-70 hover:opacity-100 transition-opacity">
     <div className="h-px w-32 bg-slate-200 dark:bg-slate-700 mb-4"></div>
     <p className="text-[10px] font-extrabold text-slate-400 dark:text-slate-500 tracking-[0.25em] uppercase text-center">
-      © 2025 TEKUN NASIONAL • AZAM RAMLI
+      © {new Date().getFullYear()} TEKUN NASIONAL • AZAM RAMLI
     </p>
   </div>
 );
 
 const Layout: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => window.innerWidth >= 1024);
-  const [selectedYear, setSelectedYear] = useState<number>(2025);
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [connectionStatus, setConnectionStatus] = useState<'online' | 'offline' | 'demo'>('demo');
   
@@ -419,10 +420,10 @@ const Layout: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
                               onChange={(e) => setSelectedYear(Number(e.target.value))}
                               className="absolute inset-0 opacity-0 cursor-pointer"
                           >
-                              <option value={2026}>2026</option>
-                              <option value={2025}>2025</option>
-                              <option value={2024}>2024</option>
-                              <option value={2023}>2023</option>
+                              <option value={new Date().getFullYear() + 1}>{new Date().getFullYear() + 1}</option>
+                              <option value={new Date().getFullYear()}>{new Date().getFullYear()}</option>
+                              <option value={new Date().getFullYear() - 1}>{new Date().getFullYear() - 1}</option>
+                              <option value={new Date().getFullYear() - 2}>{new Date().getFullYear() - 2}</option>
                           </select>
                       </div>
                   </div>
