@@ -1,95 +1,81 @@
-
 // contexts/AuthContext.tsx
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { AuthContextType, User } from '../types';
 import { api } from '../services/api';
-import { supabase, isConfigured } from '../services/supabaseClient';
+
+// Declare netlifyIdentity for TypeScript
+declare global {
+  interface Window {
+    netlifyIdentity: any;
+  }
+}
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children?: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const mapNetlifyUser = (netlifyUser: any): User => {
+    return {
+      id: netlifyUser.id,
+      email: netlifyUser.email,
+      name: netlifyUser.user_metadata?.full_name || netlifyUser.email.split('@')[0],
+      role: (netlifyUser.app_metadata?.roles && netlifyUser.app_metadata.roles[0]) || 'user',
+      status: 'active'
+    };
+  };
+
   useEffect(() => {
-    // 1. Initial Load from LocalStorage (for fast UI render)
-    const storedUser = localStorage.getItem('fintrack_user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
+    // 1. Initialize Netlify Identity
+    if (window.netlifyIdentity) {
+      window.netlifyIdentity.on('init', (netlifyUser: any) => {
+        if (netlifyUser) {
+          const appUser = mapNetlifyUser(netlifyUser);
+          setUser(appUser);
+          localStorage.setItem('fintrack_user', JSON.stringify(appUser));
+        }
+        setLoading(false);
+      });
 
-    if (isConfigured) {
-        // 2. Supabase Auth Listener (Real-time)
-        // Cast auth to any to support onAuthStateChange if types are mismatched (v2 method)
-        const { data: authListener } = (supabase.auth as any).onAuthStateChange(async (event: string, session: any) => {
-            if (session?.user) {
-                try {
-                    // Fetch profile details
-                    const { data: profile } = await supabase
-                        .from('profiles')
-                        .select('*')
-                        .eq('id', session.user.id)
-                        .single();
+      window.netlifyIdentity.on('login', (netlifyUser: any) => {
+        const appUser = mapNetlifyUser(netlifyUser);
+        setUser(appUser);
+        localStorage.setItem('fintrack_user', JSON.stringify(appUser));
+        window.netlifyIdentity.close(); // Close modal on success
+      });
 
-                    if (profile) {
-                        const appUser: User = {
-                            id: session.user.id,
-                            email: session.user.email || '',
-                            name: profile.name || 'User',
-                            role: profile.role || 'viewer',
-                            status: profile.status || 'active'
-                        };
+      window.netlifyIdentity.on('logout', () => {
+        setUser(null);
+        localStorage.removeItem('fintrack_user');
+      });
 
-                        if (profile.status === 'inactive') {
-                            await (supabase.auth as any).signOut();
-                            setUser(null);
-                            localStorage.removeItem('fintrack_user');
-                            return;
-                        }
-
-                        // Update state if different
-                        if (!user || JSON.stringify(user) !== JSON.stringify(appUser)) {
-                            setUser(appUser);
-                            localStorage.setItem('fintrack_user', JSON.stringify(appUser));
-                        }
-                    }
-                } catch (e) {
-                    console.error("Auth sync error:", e);
-                }
-            } else {
-                if (event === 'SIGNED_OUT') {
-                    setUser(null);
-                    localStorage.removeItem('fintrack_user');
-                }
-            }
-        });
-
-        return () => {
-            authListener.subscription.unsubscribe();
-        };
+      window.netlifyIdentity.init();
+    } else {
+      // Fallback if Netlify is not available (e.g. localhost without script)
+      const storedUser = localStorage.getItem('fintrack_user');
+      if (storedUser) {
+        setUser(JSON.parse(storedUser));
+      }
+      setLoading(false);
     }
   }, []);
 
   const login = async (username: string, pass: string) => {
+    // Manual login fallback or specific trigger
     setLoading(true);
     setError(null);
     try {
       const response = await api.login(username, pass);
-      
       if (response.status === 'success' && response.user) {
-        const newUser = response.user;
-        setUser(newUser);
-        localStorage.setItem('fintrack_user', JSON.stringify(newUser));
+        setUser(response.user);
+        localStorage.setItem('fintrack_user', JSON.stringify(response.user));
       } else {
-        const msg = response.message || response.error || 'Log masuk gagal.';
-        setError(msg);
-        throw new Error(msg);
+        throw new Error(response.message || 'Log masuk gagal.');
       }
     } catch (err: any) {
-      console.error("Login Context Error:", err);
-      const msg = err.message || 'Ralat rangkaian.';
-      setError(msg);
+      setError(err.message);
       throw err;
     } finally {
       setLoading(false);
@@ -101,20 +87,14 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
     setError(null);
     try {
       const response = await api.register(username, pass, name);
-      
       if (response.status === 'success' && response.user) {
-        const newUser = response.user;
-        setUser(newUser);
-        localStorage.setItem('fintrack_user', JSON.stringify(newUser));
+        setUser(response.user);
+        localStorage.setItem('fintrack_user', JSON.stringify(response.user));
       } else {
-        const msg = response.message || response.error || 'Pendaftaran gagal.';
-        setError(msg);
-        throw new Error(msg);
+        throw new Error(response.message || 'Pendaftaran gagal.');
       }
     } catch (err: any) {
-      console.error("Register Context Error:", err);
-      const msg = err.message || 'Ralat rangkaian.';
-      setError(msg);
+      setError(err.message);
       throw err;
     } finally {
       setLoading(false);
@@ -122,13 +102,11 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
   };
 
   const logout = async () => {
-    if (user?.email) {
-        api.logActivity(user.email, 'LOGOUT', 'User logged out');
-    }
-    setUser(null);
-    localStorage.removeItem('fintrack_user');
-    if (isConfigured) {
-        await (supabase.auth as any).signOut();
+    if (window.netlifyIdentity) {
+      window.netlifyIdentity.logout();
+    } else {
+      setUser(null);
+      localStorage.removeItem('fintrack_user');
     }
   };
 
